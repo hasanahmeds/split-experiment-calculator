@@ -1,0 +1,422 @@
+{
+  "number": 4,
+  "title": "Split Experiment Calculator",
+  "slug": "split-experiment-calculator",
+  "start": "2025-02-25",
+  "end": "2025-03-14",
+  "repo": "zalando/expan",
+  "branch": "master",
+  "license": "MIT",
+  "note": "Statistical A/B-testing library; a custom calculator UI is not included.",
+  "sha": "49a1ba3d9fdd786e08146f904a631f67484fd2d3",
+  "archive_sha256": "a113dbaba54f0810e3d4069d762bc45e3088096cea18c45043978b4902b42843",
+  "imported_at": "2026-10-28T21:31:24.478818+00:00",
+  "history": "Reconstructed import history; dates are not dates of original development.",
+  "upstream_files": {
+    "upstream/.coveragerc": {
+      "sha256": "21bac8d5a99506abfb17fcebe790291c7f169bf54b85a1193bc7baf688d75b2f",
+      "mode": "100644",
+      "bytes": 36
+    },
+    "upstream/.editorconfig": {
+      "sha256": "37998e97ad01cc222fd89547429486e2835030727e7382607be3f41e9792d912",
+      "mode": "100644",
+      "bytes": 339
+    },
+    "upstream/.gitignore": {
+      "sha256": "35d1d62f5cf65cf1ac25409c1a20f3d530d6c956fcdf816a7d7645843ad7eff5",
+      "mode": "100644",
+      "bytes": 898
+    },
+    "upstream/.lvimrc": {
+      "sha256": "718cc8d8dfe07f235f3694820f091025d1ee12d8bd9f0669efd8856e327a0490",
+      "mode": "100644",
+      "bytes": 456
+    },
+    "upstream/.travis.yml": {
+      "sha256": "09441f4c7ac021e12f43804a83b9ff5d9096142d1345affdd610d04015039504",
+      "mode": "100644",
+      "bytes": 1093
+    },
+    "upstream/.zappr.yaml": {
+      "sha256": "03de9c151c0cdfd63caf4a4caaf146d718fa4fac4e144636efc5e328d0895935",
+      "mode": "100644",
+      "bytes": 146
+    },
+    "upstream/CHANGELOG.md": {
+      "sha256": "6bf12cc341102c92372638df698cff43de28c641be2831f7ad9fac63688aa339",
+      "mode": "100644",
+      "bytes": 35999
+    },
+    "upstream/CHANGELOG.rst": {
+      "sha256": "075b771c87cc0c49072cb40d07b0dd30f008fcf09c864da973f6faf6955198c9",
+      "mode": "100644",
+      "bytes": 42058
+    },
+    "upstream/CONTRIBUTORS.rst": {
+      "sha256": "92d5df3ffc011dedab192087128ea22b76b0b18dbb6eba94da18030a0353867f",
+      "mode": "100644",
+      "bytes": 497
+    },
+    "upstream/HISTORY.rst": {
+      "sha256": "1f2ca7bc8f4e3e7a777ad3c12e059c9067e5537054f6dfed4250b7b88bcf9968",
+      "mode": "100644",
+      "bytes": 337
+    },
+    "upstream/LICENSE": {
+      "sha256": "94687d8e37206469d5697657cdec1271d6cdcbc6cf3aee66ca3c9deefe7b078f",
+      "mode": "100644",
+      "bytes": 1076
+    },
+    "upstream/MAINTAINERS.md": {
+      "sha256": "fc8682d63c49f567a4024f0371f01065c83dcd327ea90cb15abca457f97c7a00",
+      "mode": "100644",
+      "bytes": 132
+    },
+    "upstream/MANIFEST.in": {
+      "sha256": "5a28d8125646c3e7e46479fdd149862c3e9f24ded32a8fd07223a6c0ac4ce52a",
+      "mode": "100644",
+      "bytes": 322
+    },
+    "upstream/Makefile": {
+      "sha256": "a18fb180486d40a2ac2423f319820a98733d4d6c40f3deebe22f49e2eff050ad",
+      "mode": "100644",
+      "bytes": 2227
+    },
+    "upstream/README.rst": {
+      "sha256": "cae95413249b9d15219afc4c957dbadfa5492e539685fb1839fa9b267103b0ac",
+      "mode": "100644",
+      "bytes": 3736
+    },
+    "upstream/docs/Makefile": {
+      "sha256": "48ecd0fc52771045b8608f933fc728caca8498f2faac236bb7584ab7b41d3743",
+      "mode": "100644",
+      "bytes": 6758
+    },
+    "upstream/docs/api.rst": {
+      "sha256": "c9ad66e082e92b8b3a0f2784af8df090a57320c0c3aff3ca18afe7153c2b7b5d",
+      "mode": "100644",
+      "bytes": 1387
+    },
+    "upstream/docs/conf.py": {
+      "sha256": "fe83fe4e6442ed86c4ed90e7d5dece44cc404e5eadbc758838ed8ca04be45174",
+      "mode": "100755",
+      "bytes": 8764
+    },
+    "upstream/docs/contributing.rst": {
+      "sha256": "7ba8fcd452d67e3ee7eeb67537791c56bc5f1e5015e36194d1d5c8355af536a0",
+      "mode": "100644",
+      "bytes": 4636
+    },
+    "upstream/docs/expan.core.rst": {
+      "sha256": "63c908e8c94f4abed23a04ff97fc9688af43b7a2adb27d1b40ff5f123addf6c0",
+      "mode": "100644",
+      "bytes": 1602
+    },
+    "upstream/docs/expan.data.rst": {
+      "sha256": "d7dbdce912bc29c32517820be3d9dcfb0db1ec0f56b269f8215a7c5727f73e4e",
+      "mode": "100644",
+      "bytes": 346
+    },
+    "upstream/docs/expan.rst": {
+      "sha256": "eeb26da248ba3fb83ef3bda6f447b090e2134054c83ee286583cd1a6f5c0d713",
+      "mode": "100644",
+      "bytes": 211
+    },
+    "upstream/docs/glossary.rst": {
+      "sha256": "2fb5019fc9f78b1f324fddb2c70b0d52f8b2962a175b3b6acd9ea953ebba152f",
+      "mode": "100644",
+      "bytes": 10760
+    },
+    "upstream/docs/history.rst": {
+      "sha256": "bd8b3e8b5551105b987eb3f26cc72889cf471457ed78d12d93870ab39e1ec311",
+      "mode": "100644",
+      "bytes": 30
+    },
+    "upstream/docs/index.rst": {
+      "sha256": "bfbe8bf8cb87350f6c85ee63c78dca2d9b7e749d71a7d67df28333faadbceaf9",
+      "mode": "100644",
+      "bytes": 394
+    },
+    "upstream/docs/make.bat": {
+      "sha256": "6462a49c42a81fc68f748fc6d418aee3b5443025805893f5e82a61a73db7c3bc",
+      "mode": "100644",
+      "bytes": 6457
+    },
+    "upstream/docs/modules.rst": {
+      "sha256": "0a9dfc5e6c4afab09dae178ea3dfcaba0a6619e7743f57214442912b342c4153",
+      "mode": "100644",
+      "bytes": 52
+    },
+    "upstream/docs/readme.rst": {
+      "sha256": "087bcb5ee8cba1da1fa14d6e312f7bcdb88b38413041aca1eff5fc1084e3a93f",
+      "mode": "100644",
+      "bytes": 27
+    },
+    "upstream/docs/tutorial.rst": {
+      "sha256": "e65b2d27c8b92f84f0f025b9040991b79dcc4c7c468d445e9f80e33eaefa0b25",
+      "mode": "100644",
+      "bytes": 14773
+    },
+    "upstream/expan/__init__.py": {
+      "sha256": "6667a9fb5ca6349c1fba32955ed5feb19c65421deb49cbcf36ea895de7af1b62",
+      "mode": "100644",
+      "bytes": 287
+    },
+    "upstream/expan/core/__init__.py": {
+      "sha256": "398333cb5ca04253a402015c64b01269ae3e6691479c9f6eb66628585ef82231",
+      "mode": "100644",
+      "bytes": 313
+    },
+    "upstream/expan/core/binning.py": {
+      "sha256": "6aa18517fed97889d4d69605260a770e2edeca442efc6350290974204289ab73",
+      "mode": "100644",
+      "bytes": 9946
+    },
+    "upstream/expan/core/correction.py": {
+      "sha256": "14ded439b7d5700bb3f7a35d1a80f7f7085c6b447f6ef5d48f07a124eb43f00d",
+      "mode": "100644",
+      "bytes": 1363
+    },
+    "upstream/expan/core/early_stopping.py": {
+      "sha256": "d7c70efccb96ddcdf24c88fc14db178826408811a26496771fa30a3a0ad82a40",
+      "mode": "100644",
+      "bytes": 19034
+    },
+    "upstream/expan/core/experiment.py": {
+      "sha256": "16410647131929c81339fd54a4b83cff5cb3e8ecbacca51ca267461f18ec041a",
+      "mode": "100644",
+      "bytes": 20620
+    },
+    "upstream/expan/core/results.py": {
+      "sha256": "3d42141b40f7e625732d3e1b97d3993039e24295ed5baa296bb196b157520621",
+      "mode": "100644",
+      "bytes": 6175
+    },
+    "upstream/expan/core/statistical_test.py": {
+      "sha256": "8a7ce94d550aae473aac161d785281516214f78271fb82a9de60f0d29f06f54d",
+      "mode": "100644",
+      "bytes": 5454
+    },
+    "upstream/expan/core/statistics.py": {
+      "sha256": "40ef5ce5407a117a6185605a661760724cebbde19b51a6697a5d8ea31780758d",
+      "mode": "100644",
+      "bytes": 27266
+    },
+    "upstream/expan/core/util.py": {
+      "sha256": "c6eeebdb782111016057d8a2ef522752887b2cf6352cc3ab4ed4a48efc80340b",
+      "mode": "100644",
+      "bytes": 3437
+    },
+    "upstream/expan/core/version.py": {
+      "sha256": "a63cdec53b90822e5e538bf11f7d625385320d2abda1e0ff6499538771e243be",
+      "mode": "100644",
+      "bytes": 1708
+    },
+    "upstream/expan/data/README.md": {
+      "sha256": "7dabcfd61897693d61f45a7f4a7bfb2862017c55f675cfcf4ca4a461ea8d802a",
+      "mode": "100644",
+      "bytes": 280
+    },
+    "upstream/expan/data/__init__.py": {
+      "sha256": "9ec80021f359bff037b1faf06f57e8ae765268c641a3024721bf42a545e17684",
+      "mode": "100644",
+      "bytes": 53
+    },
+    "upstream/expan/data/csv_fetcher.py": {
+      "sha256": "9afd63dee98e9f49c60c736a1ace126e1cdd59e72c68605a3b1987aafd3b6f44",
+      "mode": "100644",
+      "bytes": 1277
+    },
+    "upstream/expan/models/normal_kpi.stan": {
+      "sha256": "4d2621c3cf07dd73e4493944e2df4efc312f41d03ae70a1f1ff682729a592c17",
+      "mode": "100644",
+      "bytes": 637
+    },
+    "upstream/expan/models/poisson_kpi.stan": {
+      "sha256": "667e09271e1a595e1053b620653b4d5870e1b87714ca2c697d6dce1eb5d4532f",
+      "mode": "100644",
+      "bytes": 516
+    },
+    "upstream/requirements.txt": {
+      "sha256": "4c597a1b6f99f8f7363c86fafcd30245b40064dbb67ff95b0ac95547fb092979",
+      "mode": "100644",
+      "bytes": 113
+    },
+    "upstream/requirements_dev.txt": {
+      "sha256": "e42093e63dc708dba8c8a20833ed11d37b272ca42b5567d46b53633e5fb4d049",
+      "mode": "100644",
+      "bytes": 229
+    },
+    "upstream/requirements_tox_test.txt": {
+      "sha256": "5a35f28a4f514946cfbe48d16ec6383e7d8cb55dae3eabc1b321fa35506aaccb",
+      "mode": "100644",
+      "bytes": 118
+    },
+    "upstream/runtests": {
+      "sha256": "237804c88b40ae9bb80f465842ed54c6179a31275a7a13d7699ae6b5b8b35a95",
+      "mode": "100755",
+      "bytes": 719
+    },
+    "upstream/serve_intro_slides": {
+      "sha256": "79e45f7e2c36ab632ce0d3302be296c721b794416af00d514c9a46bb652ddfb4",
+      "mode": "100755",
+      "bytes": 74
+    },
+    "upstream/setup.cfg": {
+      "sha256": "66f052e3c49e14198a43b427b6ace5f01f9610ba3d5d28e7a7c113ca17e358b7",
+      "mode": "100644",
+      "bytes": 185
+    },
+    "upstream/setup.py": {
+      "sha256": "7007b0e3b2d9a6db681b36613b12193bc9fb880516c832754d78677cb21ccdbc",
+      "mode": "100644",
+      "bytes": 1950
+    },
+    "upstream/tests/__init__.py": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": "100644",
+      "bytes": 0
+    },
+    "upstream/tests/test_derived.py": {
+      "sha256": "ce4b9a88a2dd7932632afa3a8cbf11e2a475fded5eed2482c05380bfabb9d8da",
+      "mode": "100644",
+      "bytes": 10496
+    },
+    "upstream/tests/tests_core/__init__.py": {
+      "sha256": "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+      "mode": "100644",
+      "bytes": 1
+    },
+    "upstream/tests/tests_core/data/framingham_data.csv": {
+      "sha256": "c6a7096ab38cf64fedb94d15b4384f4e396464abcc8c9c2bce09266c934c659e",
+      "mode": "100644",
+      "bytes": 70298
+    },
+    "upstream/tests/tests_core/data/framingham_heart_study_exam7.csv": {
+      "sha256": "92b62a76606145c837d7802e901bd3a07c412a583a9a3602e3f1771a8cdc5e97",
+      "mode": "100644",
+      "bytes": 298
+    },
+    "upstream/tests/tests_core/data/framingham_statistics.csv": {
+      "sha256": "848dfb50a53a0c59509185c28e87383368e78f76e53a5b29bd7f873effb00716",
+      "mode": "100644",
+      "bytes": 755
+    },
+    "upstream/tests/tests_core/data/normtemp.dat.txt.gz": {
+      "sha256": "66cce23978720cc12a05ec588aea868bb6137227c0130ca35655dae399b55f52",
+      "mode": "100644",
+      "bytes": 426
+    },
+    "upstream/tests/tests_core/test_binning.py": {
+      "sha256": "6586f3394ee4bacf738b26672a5b7e40d7536272c135f3127a7ebac779845f57",
+      "mode": "100644",
+      "bytes": 12030
+    },
+    "upstream/tests/tests_core/test_correction.py": {
+      "sha256": "08c5c06e92d92f21f5da43cfcfb287d989d09846536170a00496eabbce5aadc4",
+      "mode": "100644",
+      "bytes": 1691
+    },
+    "upstream/tests/tests_core/test_early_stopping.py": {
+      "sha256": "9b5e04734dae92d3475edbe631ab888af2f282ce473a9e2b9fa78e31a7f523bd",
+      "mode": "100644",
+      "bytes": 8806
+    },
+    "upstream/tests/tests_core/test_experiment.py": {
+      "sha256": "1b60a8d908074a325235679b52f1d19c0dbfb6ebe77109bbaff9969d79b2ab1f",
+      "mode": "100644",
+      "bytes": 26303
+    },
+    "upstream/tests/tests_core/test_json_serializer.py": {
+      "sha256": "da2ddf4826195ae614f8c8685c1aeae6b879d506ccae6a31cb3b10e30dabf432",
+      "mode": "100644",
+      "bytes": 4639
+    },
+    "upstream/tests/tests_core/test_outliers.py": {
+      "sha256": "43f531e1de0d2cecb043020f46143f17d44af391284884eaca00e4c917cc23b2",
+      "mode": "100644",
+      "bytes": 2865
+    },
+    "upstream/tests/tests_core/test_results.py": {
+      "sha256": "759608976768a217bf5c0b76159cc48f4ba53afcbf932dfe57e8bae10041f794",
+      "mode": "100644",
+      "bytes": 5738
+    },
+    "upstream/tests/tests_core/test_statistical_test.py": {
+      "sha256": "a5a4fd0e0debbbf98d668764fb4fd6e461192fae6230b6eb66231ee033274f44",
+      "mode": "100644",
+      "bytes": 4584
+    },
+    "upstream/tests/tests_core/test_statistics.py": {
+      "sha256": "a0949867f73684d894a709d3b941d8fd2d5bd90365e0be7369cc72c696a95143",
+      "mode": "100644",
+      "bytes": 14282
+    },
+    "upstream/tests/tests_core/test_util.py": {
+      "sha256": "15aae49a4f0364e000b53fdfa20f465833f2686e70606ce766f738a5171b4e48",
+      "mode": "100644",
+      "bytes": 1679
+    },
+    "upstream/tests/tests_core/util.py": {
+      "sha256": "b7d3df85568c24a1a25963d82a22f6348871ad0b9f4026e25af63767d17b3689",
+      "mode": "100644",
+      "bytes": 4094
+    },
+    "upstream/tests/tests_data_fetcher/__init__.py": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "mode": "100644",
+      "bytes": 0
+    },
+    "upstream/tests/tests_data_fetcher/test_csv_fetcher.py": {
+      "sha256": "70e8c330c3b0b5f5ba49957397e4b2e82616e8b4fc11def25912c391f1b7dd90",
+      "mode": "100644",
+      "bytes": 1377
+    },
+    "upstream/tox.ini": {
+      "sha256": "ed8563d95baa74de52c6c3f42d0d10ed4171c4c866efe5f0386c493db9c7c3df",
+      "mode": "100644",
+      "bytes": 214
+    },
+    "upstream/travis_pypi_setup.py": {
+      "sha256": "7f367501d2039aa22ade07f165299a66b580c47393396d3d311fe0d61dbf5c40",
+      "mode": "100644",
+      "bytes": 3584
+    }
+  },
+  "excluded_git_metadata": [],
+  "history_repair": {
+    "pattern": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "approved_calendar": true,
+    "seed": 20251028,
+    "previous_main": "f005ac1a1bc0a9456199cfa94cba3740dcf27e56",
+    "daily_counts": {
+      "2025-02-25": 3,
+      "2025-02-26": 1,
+      "2025-02-27": 4,
+      "2025-02-28": 2,
+      "2025-03-01": 2,
+      "2025-03-02": 1,
+      "2025-03-03": 2,
+      "2025-03-04": 0,
+      "2025-03-05": 0,
+      "2025-03-06": 0,
+      "2025-03-07": 5,
+      "2025-03-08": 2,
+      "2025-03-09": 4,
+      "2025-03-10": 3,
+      "2025-03-11": 0,
+      "2025-03-12": 2,
+      "2025-03-13": 4,
+      "2025-03-14": 1
+    },
+    "description": "Reconstructed import timestamps; not original development dates."
+  }
+}
