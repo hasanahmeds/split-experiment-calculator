@@ -78,3 +78,23 @@ def generate_random_data():
     data.loc[ii, 'normal_shifted_by_feature'] = randdata_shifted_mean
 
     data['treatment_start_time'] = np.random.choice(list(range(10)), size=size)
+    data['normal_unequal_variance'] = np.random.normal(size=size)
+
+    size_unequalvar_B = data['normal_unequal_variance'][data['variant'] == 'B'].shape[0]
+    data.loc[data['variant'] == 'B', 'normal_unequal_variance'] = np.random.normal(scale=10, size=size_unequalvar_B)
+
+    # Add date column
+    d1 = datetime.strptime('2015-01-01', '%Y-%m-%d')
+    d2 = datetime.strptime('2016-03-01', '%Y-%m-%d')
+    date_col = []
+    delta = d2 - d1
+    for i in range(delta.days * 24 + 1):
+        date_col.append((d1 + timedelta(hours=i)).strftime('%Y-%m-%d'))
+    data['date'] = date_col[:size]
+
+    metadata = {
+        'primary_KPI': 'normal_shifted',
+        'source': 'simulated',
+        'experiment': 'random_data_generation'
+    }
+    return data, metadata
