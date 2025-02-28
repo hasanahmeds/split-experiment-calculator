@@ -198,3 +198,203 @@ def _bayes_sampling(x, y, distribution='normal', num_iters=25000, inference="sam
 
     mu_x = np.nanmean(_x)
     mu_y = np.nanmean(_y)
+    n_x = statx.sample_size(_x)
+    n_y = statx.sample_size(_y)
+
+    if distribution == 'normal':
+        fit_data = {'Nc': n_y,
+                    'Nt': n_x,
+                    'x': _x,
+                    'y': _y}
+    elif distribution == 'poisson':
+        fit_data = {'Nc': n_y,
+                    'Nt': n_x,
+                    'x': _x.astype(int),
+                    'y': _y.astype(int)}
+    else:
+        raise NotImplementedError
+
+    model_file = __location__ + '/../models/' + distribution + '_kpi.stan'
+
+    sm = get_or_compile_stan_model(model_file, distribution)
+
+    if inference == "sampling":
+        fit = sm.sampling(data=fit_data, iter=num_iters, chains=4, n_jobs=1, seed=1,
+                          control={'stepsize': 0.01, 'adapt_delta': 0.99})
+        traces = fit.extract()
+
+    elif inference == "variational":
+        results_dict = sm.vb(data=fit_data, iter=10000)
+        traces = {}
+        for i in range(len(results_dict['sampler_param_names'])):
+            para_name = results_dict['sampler_param_names'][i]
+            para_values = np.array(results_dict['sampler_params'][i])
+            traces[para_name] = para_values
+
+    if cache_sampling_results:
+        sampling_results[key] = (traces, n_x, n_y, mu_x, mu_y)
+
+    logger.info("Finished running bayesian inference with {} procedure, treatment group of size {}, "
+                "control group of size {}, {} distribution.".format(inference, len(x), len(y), distribution))
+    return traces, n_x, n_y, mu_x, mu_y
+
+
+def make_bayes_factor(distribution='normal', num_iters=25000, inference='sampling'):
+    """ Closure method for the bayes_factor"""
+    def f(x, y, x_denominators = 1, y_denominators = 1):
+        x = x / np.nanmean(x_denominators)
+        y = y / np.nanmean(y_denominators)
+        return bayes_factor(x, y, distribution, num_iters, inference)
+    return f
+
+
+def bayes_factor(x, y, distribution='normal', num_iters=25000, inference='sampling'):
+    """ Bayes factor computation.
+
+    :param x: sample of a treatment group
+    :type  x: pd.Series or list (array-like)
+    :param y: sample of a control group
+    :type  y: pd.Series or list (array-like)
+    :param distribution: name of the KPI distribution model, which assumes a Stan model file with the same name exists
+    :type  distribution: str
+    :param num_iters: number of iterations of bayes sampling
+    :type  num_iters: int
+    :param inference: sampling or variational inference method for approximation the posterior
+    :type  inference: str
+
+    :return: results of type EarlyStoppingTestStatistics (without p-value and stat. power)
+    :rtype:  EarlyStoppingTestStatistics
+    """
+
+    logger.info("Started running bayes factor with {} procedure, treatment group of size {}, "
+                "control group of size {}, {} distribution.".format(len(x), len(y), distribution, inference))
+
+    traces, n_x, n_y, mu_x, mu_y = _bayes_sampling(x, y, distribution=distribution, num_iters=num_iters,
+                                                   inference=inference)
+    trace_normalized_effect_size = get_trace_normalized_effect_size(distribution, traces)
+    trace_absolute_effect_size = traces['delta']
+
+    kde = gaussian_kde(trace_normalized_effect_size)
+    prior = cauchy.pdf(0, loc=0, scale=1)
+    # BF_01
+    bf = kde.evaluate(0)[0] / prior
+    stop = bf > 3 or bf < 1 / 3.
+
+    credible_mass = 0.95
+    left_out      = 1.0 - credible_mass
+    p1            = round(left_out/2.0, 5)
+    p2            = round(1.0 - left_out/2.0, 5)
+    credible_interval = HDI_from_MCMC(trace_absolute_effect_size, credible_mass)
+
+    treatment_statistics = SampleStatistics(int(n_x), float(mu_x), float(np.nanvar(x)))
+    control_statistics   = SampleStatistics(int(n_y), float(mu_y), float(np.nanvar(y)))
+    variant_statistics   = BaseTestStatistics(control_statistics, treatment_statistics)
+
+    logger.info("Finished running bayes factor with {} procedure, treatment group of size {}, "
+                "control group of size {}, {} distribution.".format(len(x), len(y), distribution, inference))
+
+    return EarlyStoppingTestStatistics(variant_statistics.control_statistics,
+                                       variant_statistics.treatment_statistics,
+                                       float(mu_x - mu_y),
+                                       dict([(p*100, v) for p, v in zip([p1, p2], credible_interval)]),
+                                       None, None, stop)
+
+
+def make_bayes_precision(distribution='normal', posterior_width=0.08, num_iters=25000, inference='sampling'):
+    """ Closure method for the bayes_precision"""
+    def f(x, y, x_denominators = 1, y_denominators = 1):
+        x = x / np.nanmean(x_denominators)
+        y = y / np.nanmean(y_denominators)
+        return bayes_precision(x, y, distribution, posterior_width, num_iters, inference)
+    return f
+
+
+def bayes_precision(x, y, distribution='normal', posterior_width=0.08, num_iters=25000, inference='sampling'):
+    """ Bayes precision computation.
+
+    :param x: sample of a treatment group
+    :type  x: pd.Series or list (array-like)
+    :param y: sample of a control group
+    :type  y: pd.Series or list (array-like)
+    :param distribution: name of the KPI distribution model, which assumes a Stan model file with the same name exists
+    :type  distribution: str
+    :param posterior_width: the stopping criterion, threshold of the posterior  width
+    :type  posterior_width: float
+    :param num_iters: number of iterations of bayes sampling
+    :type  num_iters: int
+    :param inference: sampling or variational inference method for approximation the posterior
+    :type  inference: str
+
+    :return: results of type EarlyStoppingTestStatistics (without p-value and stat. power)
+    :rtype:  EarlyStoppingTestStatistics
+    """
+
+    logger.info("Started running bayes precision with {} procedure, treatment group of size {}, "
+                "control group of size {}, {} distribution.".format(len(x), len(y), distribution, inference))
+
+    traces, n_x, n_y, mu_x, mu_y = _bayes_sampling(x, y, distribution=distribution,
+                                                   num_iters=num_iters, inference=inference)
+    trace_normalized_effect_size = get_trace_normalized_effect_size(distribution, traces)
+    trace_absolute_effect_size = traces['delta']
+
+    credible_mass = 0.95
+    left_out      = 1.0 - credible_mass
+    p1            = round(left_out/2.0, 5)
+    p2            = round(1.0 - left_out/2.0, 5)
+
+    credible_interval_delta            = HDI_from_MCMC(trace_absolute_effect_size, credible_mass)
+    credible_interval_delta_normalized = HDI_from_MCMC(trace_normalized_effect_size, credible_mass)
+
+    stop = credible_interval_delta_normalized[1] - credible_interval_delta_normalized[0] < posterior_width
+
+    treatment_statistics = SampleStatistics(int(n_x), float(mu_x), float(np.nanvar(x)))
+    control_statistics   = SampleStatistics(int(n_y), float(mu_y), float(np.nanvar(y)))
+    variant_statistics   = BaseTestStatistics(control_statistics, treatment_statistics)
+
+    logger.info("Finished running bayes precision with {} procedure, treatment group of size {}, "
+                "control group of size {}, {} distribution.".format(len(x), len(y), distribution, inference))
+
+    return EarlyStoppingTestStatistics(variant_statistics.control_statistics,
+                                       variant_statistics.treatment_statistics,
+                                       float(mu_x - mu_y),
+                                       dict([(p * 100, v) for p, v in zip([p1, p2], credible_interval_delta)]),
+                                       None, None, stop)
+
+
+def get_trace_normalized_effect_size(distribution, traces):
+    """ Obtaining a Stan model statistics for 'normal' or 'poisson' distribution
+
+    :param distribution: name of the KPI distribution model, which assumes a Stan model file with the same name exists
+    :type  distribution: str
+    :param traces: sampling statistics
+    :type  traces: dict
+
+    :return: sample of data points from posterior distribution of some parameter
+    :rtype:  array-like
+    """
+    # check of traces type, if traces is not dict "traces['alpha']" will return KeyError
+    if not isinstance(traces, dict):
+        raise TypeError("Traces statistics is not a dictionary and does not contain alpha or delta statistics.")
+
+    if distribution == 'normal':
+        return traces['alpha']
+    elif distribution == 'poisson':
+        variance = np.nanmean(np.array(traces['delta']))
+        return traces['delta'] / np.sqrt(np.absolute(variance))
+    else:
+        raise ValueError("Model " + distribution + " is not implemented.")
+
+
+def get_or_compile_stan_model(model_file, distribution):
+    """ Creates Stan model. Compiles a Stan model and saves it to .pkl file to the folder selected by tempfile module if
+    file doesn't exist yet and load precompiled model if there is a model file in temporary dir.
+    
+    Note: compiled_model_file is the hardcoded file path which may cause some issues in future.
+    There are 2 alternative implementations for Stan models handling:
+
+    1. Using global variables
+    2. Pre-compiling stan models and adding them as a part of ExpAn project
+
+    Using temporary files with tempfile module is not currently possible,
+    since it generates a unique file name which is difficult to track.
+    However, compiled modules are saved in temporary directory using tempfile module 
