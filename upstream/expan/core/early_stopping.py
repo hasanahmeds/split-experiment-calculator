@@ -398,3 +398,30 @@ def get_or_compile_stan_model(model_file, distribution):
     Using temporary files with tempfile module is not currently possible,
     since it generates a unique file name which is difficult to track.
     However, compiled modules are saved in temporary directory using tempfile module 
+    which vary based on the current platform and settings. Cleaning up a temp dir is done on boot.
+
+    :param model_file: model file location
+    :type  model_file: str
+    :param distribution: name of the KPI distribution model, which assumes a Stan model file with the same name exists
+    :type  distribution: str
+
+    :return: compiled Stan model for the selected distribution or normal distribution as a default option
+    :rtype:  Class representing a compiled Stan model
+    """
+
+    logger.info("Started loading and compiling Stan model for {} distribution".format(distribution))
+
+    if distribution is not 'normal' and distribution is not 'poisson':
+        raise ValueError("Model " + distribution + " is not implemented.")
+
+    python_version = '{0[0]}.{0[1]}'.format(sys.version_info)
+    compiled_model_file = tempfile.gettempdir() + '/expan_early_stop_compiled_stan_model_' \
+                                                + distribution + '_' + python_version + '.pkl'
+
+    if os.path.isfile(compiled_model_file):
+        sm = pickle.load(open(compiled_model_file, 'rb'))
+    else:
+        sm = StanModel(file=model_file)
+        with open(compiled_model_file, 'wb') as f:
+            pickle.dump(sm, f)
+    return sm
