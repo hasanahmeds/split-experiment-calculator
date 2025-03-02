@@ -358,3 +358,50 @@ class Experiment(object):
 
     def run_goodness_of_fit_test(self, observed_freqs, expected_freqs, alpha=0.01, min_counts=5):
         """ Checks the validity of observed and expected counts and runs chi-square test for goodness of fit.
+
+        :param observed_freqs: observed frequencies
+        :type  observed_freqs: pd.Series
+        :param expected_freqs: expected frequencies
+        :type  expected_freqs: pd.Series
+        :param alpha: significance level
+        :type  alpha: float
+        :param min_counts: minimum number of observations to run chi-square test
+        :type  min_counts: int
+        :return split_is_unbiased: False is split is biased and True if split is correct
+                p_value: corresponding chi-square p-value
+        :rtype: bool, float
+        """
+
+        if not isinstance(observed_freqs, pd.Series) or not isinstance(expected_freqs, pd.Series):
+            raise ValueError("Observed and expected frequencies should be of type Series.")
+        if observed_freqs.empty or expected_freqs.empty:
+            raise ValueError("Variant split check was cancelled since expected or observed frequencies are empty.")
+
+        # Ensure at least a frequency of min_counts at every location in observed_counts.
+        # It's recommended to not conduct test if frequencies in each category is less than min_counts
+        valid_observed_freqs = observed_freqs[observed_freqs > min_counts]
+        valid_expected_freqs = expected_freqs.filter(valid_observed_freqs.keys())
+
+        if len(valid_observed_freqs) == len(valid_expected_freqs) and len(valid_observed_freqs) >= 2:
+            _, p_value = statx.chi_square(valid_observed_freqs.sort_index(), valid_expected_freqs.sort_index())
+            split_is_unbiased = p_value >= alpha
+        else:
+            raise ValueError("Variant split check was cancelled since observed or expected frequencies "
+                             "are less than 2.")
+        return split_is_unbiased, p_value
+
+def _choose_threshold_type(data):
+    """ Heuristics used to decide what filtering method to use."""
+    assert len(data), 'data should be non-empty'
+    data = pd.Series(data)
+    min, max = data.min(skipna=True), data.max(skipna=True)
+
+    if min < 0.0 and max > 0.0:
+        return 'two-sided'
+    elif max > 0.0:
+        return 'upper'
+    elif min < 0.0:
+        return 'lower'
+    else:
+        # it doesn't really matter since in this case min == max == 0.0
+        return 'two-sided'
