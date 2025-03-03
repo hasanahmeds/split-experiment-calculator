@@ -1,0 +1,200 @@
+from __future__ import division # so that, under Python 2.*, integer division results in real numbers
+
+import warnings
+import logging
+
+import numpy as np
+import pandas as pd
+import scipy
+from expan.core.results import BaseTestStatistics, SampleStatistics, SimpleTestStatistics
+
+logger = logging.getLogger(__name__)
+
+
+def _delta_mean(x, y):
+    """ Calculate the delta of the two groups. Implemented as function to allow being called from bootstrap. """
+    return np.nanmean(x) - np.nanmean(y)
+
+
+def make_delta(assume_normal=True, alpha=0.05, min_observations=20, nruns=10000, relative=False):
+    """ A closure to the delta function. """
+    def go(x, y, x_denominators=1, y_denominators=1):
+        return delta(x, y, x_denominators, y_denominators, assume_normal, alpha, min_observations, nruns, relative)
+    return go
+
+
+def delta(x, y, x_denominators=1, y_denominators=1, assume_normal=True, alpha=0.05, min_observations=20, nruns=10000, relative=False):
+    """ Calculates the difference of means between the samples in a statistical sense.
+    Computation is done in form of treatment minus control, i.e. x-y.
+    Note that NaNs are treated as if they do not exist in the data. 
+    
+    :param x: sample of the treatment group
+    :type  x: pd.Series or array-like
+    :param y: sample of the control group
+    :type  y: pd.Series or array-like
+    :param x_denominators: sample of the treatment group
+    :type  x_denominators: pd.Series or array-like
+    :param y_denominators: sample of the control group
+    :type  y_denominators: pd.Series or array-like
+    :param assume_normal: specifies whether normal distribution assumptions can be made
+    :type  assume_normal: boolean
+    :param alpha: significance level (alpha)
+    :type  alpha: float
+    :param min_observations: minimum number of observations needed
+    :type  min_observations: int
+    :param nruns: only used if assume normal is false
+    :type  nruns: int
+    :param relative: if relative==True, then the values will be returned
+            as distances below and above the mean, respectively, rather than the
+            absolute values. In	this case, the interval is mean-ret_val[0] to
+            mean+ret_val[1]. This is more useful in many situations because it
+            corresponds with the sem() and std() functions.
+    :type: relative: boolean
+    
+    :return: results of type SimpleTestStatistics
+    :rtype: SimpleTestStatistics
+    """
+    # Check if data was provided and it has correct format
+    if x is None or y is None:
+        raise ValueError('Please provide two non-None samples.')
+    if not isinstance(x, pd.Series) and not isinstance(x, np.ndarray) and not isinstance(x, list):
+        raise TypeError('Please provide samples of type Series or list.')
+    if type(x) != type(y):
+        raise TypeError('Please provide samples of the same type.')
+
+    # check x and y are 'array-like'
+    assert hasattr(x, '__len__')
+    assert hasattr(y, '__len__')
+
+    # If either denominator is a scalar, convert it to a
+    # list of identical entries:
+    if not hasattr(x_denominators, '__len__'):
+        x_denominators = [x_denominators] * len(x)
+    if not hasattr(y_denominators, '__len__'):
+        y_denominators = [y_denominators] * len(y)
+
+    # lengths should match
+    assert len(x) == len(x_denominators)
+    assert len(y) == len(y_denominators)
+
+    # Must be numpy arrays of floats (otherwise .isnan won't work)
+    x = np.array(x, dtype=float)
+    y = np.array(y, dtype=float)
+    x_denominators = np.array(x_denominators, dtype=float)
+    y_denominators = np.array(y_denominators, dtype=float)
+
+    # Add a NaN to the numerator for
+    # each zero or NaN in the denominator:
+    x = x / x_denominators * x_denominators
+    y = y / y_denominators * y_denominators
+
+    # Next, any NaNs in the numerator must be 'copied' to the denominator.
+    x_denominators = x_denominators+(x*0.0)
+    y_denominators = y_denominators+(y*0.0)
+
+    # confirm the numerators have the same 'nan-ness' as their denominators
+    assert (np.isnan(x) == np.isnan(x_denominators)).all()
+    assert (np.isnan(y) == np.isnan(y_denominators)).all()
+
+    percentiles = [alpha * 100 / 2, 100 - alpha * 100 / 2]
+
+    _x = x
+    _y = y
+    _x_denominators = x_denominators
+    _y_denominators = y_denominators
+    _x_ratio = _x / _x_denominators
+    _y_ratio = _y / _y_denominators
+    _x_strange = _x / np.nanmean(_x_denominators)
+    _y_strange = _y / np.nanmean(_y_denominators)
+
+    # Four variables no longer used in this function, let's delete them for simplicity
+    del x
+    del y
+    del x_denominators
+    del y_denominators
+
+    ss_x = sample_size(_x_ratio)
+    ss_y = sample_size(_y_ratio)
+
+    # Checking if enough observations are left after dropping NaNs
+    partial_simple_test_stats = None
+    if min(ss_x, ss_y) < min_observations:
+        # Set mean to nan
+        mu = np.nan
+        # Create nan dictionary
+        c_i = dict(list(zip(percentiles, np.empty(len(percentiles)) * np.nan)))
+    else:
+        # Computing the mean
+        mu = _delta_mean(_x, _y)
+        # Computing the confidence intervals
+        if assume_normal:
+            logger.info("The distribution of two samples is assumed normal. "
+                        "Performing the sample difference distribution calculation.")
+            partial_simple_test_stats = normal_sample_weighted_difference(x_numerators=_x, y_numerators=_y,
+                                                                          x_denominators=_x_denominators,
+                                                                          y_denominators=_y_denominators,
+                                                                          percentiles=percentiles, relative=relative)
+            c_i = partial_simple_test_stats['c_i']
+            mu = partial_simple_test_stats['mean1'] - partial_simple_test_stats['mean2']
+        else:
+            logger.info("The distribution of two samples is not normal. Performing the bootstrap.")
+            c_i, _ = bootstrap(x=_x_strange, y=_y_strange, percentiles=percentiles, nruns=nruns, relative=relative)
+
+    if partial_simple_test_stats is not None: # correct the last few lines!!
+        treatment_statistics = SampleStatistics(ss_x, partial_simple_test_stats['mean1'], partial_simple_test_stats['var1'])
+        control_statistics   = SampleStatistics(ss_y, partial_simple_test_stats['mean2'], partial_simple_test_stats['var2'])
+    else:
+        # actually, this is a bit rubbish, only applies to bootstrap and min_observations:
+        treatment_statistics = SampleStatistics(ss_x, float(np.nanmean(_x_strange)), float(np.nanvar(_x_strange)))
+        control_statistics   = SampleStatistics(ss_y, float(np.nanmean(_y_strange)), float(np.nanvar(_y_strange)))
+
+    variant_statistics = BaseTestStatistics(control_statistics, treatment_statistics)
+    if partial_simple_test_stats is not None:
+        p_value = partial_simple_test_stats['p_value']
+    else:
+        p_value = compute_p_value_from_samples(_x_strange, _y_strange)
+    statistical_power = compute_statistical_power_from_samples(_x_strange, _y_strange, alpha) # TODO: wrong
+
+    logger.info("Delta calculation finished!")
+    return SimpleTestStatistics(variant_statistics.control_statistics,
+                                variant_statistics.treatment_statistics,
+                                float(mu), c_i, p_value, statistical_power)
+
+
+def sample_size(x):
+    """ Calculates valid sample size given the data.
+
+    :param x: sample to calculate the sample size
+    :type  x: pd.Series or list (array-like)
+
+    :return: sample size of the sample excluding nans
+    :rtype: int
+    """
+    # cast into a dummy numpy array to infer the dtype
+    x_as_array = np.array(x)
+
+    if np.issubdtype(x_as_array.dtype, np.number):
+        _x = np.array(x, dtype=float)
+        x_nan = np.isnan(_x).sum()
+    # assuming categorical sample
+    elif isinstance(x, pd.core.series.Series):
+        x_nan = x.str.contains('NA').sum()
+    else:
+        x_nan = list(x).count('NA')
+
+    return int(len(x) - x_nan)
+
+
+def estimate_sample_size(x, mde, r, alpha=0.05, beta=0.2):
+    """
+    Estimates sample size based on sample mean and variance given MDE (Minimum Detectable effect), 
+    number of variants and variant split ratio
+    
+    :param x: sample to base estimation on
+    :type  x: pd.Series or pd.DataFrame
+    :param mde: minimum detectable effect
+    :type  mde: float
+    :param r: variant split ratio
+    :type  r: float
+    :param alpha: significance level
+    :type  alpha: float
