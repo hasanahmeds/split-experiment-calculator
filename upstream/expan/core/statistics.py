@@ -198,3 +198,203 @@ def estimate_sample_size(x, mde, r, alpha=0.05, beta=0.2):
     :type  r: float
     :param alpha: significance level
     :type  alpha: float
+    :param beta: type II error
+    :type  beta: float
+    
+    :return: estimated sample size
+    :rtype: float or pd.Series
+    """
+    if not isinstance(x, pd.Series) and not isinstance(x, pd.DataFrame):
+        raise TypeError("Sample x needs to be either Series or DataFrame.")
+
+    if r <= 0:
+        raise ValueError("Variant split ratio needs to be higher than 0.")
+
+    ppf = scipy.stats.norm.ppf
+    c1 = (ppf(1.0 - alpha/2.0) - ppf(beta))**2
+    c2 = (1.0 + r) * c1 * (1.0 + 1.0 / r)
+    return c2 * x.var() / (mde * x.mean())**2
+
+
+def bootstrap(x, y, func=_delta_mean, nruns=10000, percentiles=[2.5, 97.5],
+              min_observations=20, return_bootstraps=False, relative=False):
+    """ Bootstraps the Confidence Intervals for a particular function comparing two samples. 
+    NaNs are ignored (discarded before calculation).
+
+    :param x: sample of the treatment group
+    :type  x: pd.Series or list (array-like)
+    :param y: sample of the control group
+    :type  y: pd.Series or list (array-like)
+    :param func: function of which the distribution is to be computed.
+                 The default comparison metric is the difference of means. 
+                 For bootstraping correlation: func=lambda x,y: np.stats.pearsonr(x,y)[0].
+    :type  func: function
+    :param nruns: number of bootstrap runs to perform
+    :type  nruns: int
+    :param percentiles: The values corresponding to the given percentiles are returned. 
+                        The default percentiles (2.5% and 97.5%) correspond to an alpha of 0.05.
+    :type  percentiles: list
+    :param min_observations: minimum number of observations necessary
+    :type  min_observations: int
+    :param return_bootstraps: If this variable is set the bootstrap sets are returned,
+                              otherwise the first return value is empty.
+    :type  return_bootstraps: bool
+    :param relative: if relative==True, then the values will be returned as distances below and above the mean, 
+                     respectively, rather than the absolute values. 
+                     In this case, the interval is mean-ret_val[0] to mean+ret_val[1]. 
+                     This is more useful in many situations because it corresponds with the sem() and std() functions.
+    :type  relative: bool
+    
+    :return (c_val, bootstraps): c_val is a dict which contains percentile levels (index) and values
+                                 bootstraps is a np.array containing the bootstrapping results per run
+    :rtype: tuple
+    """
+    # Checking if data was provided
+    if x is None or y is None:
+        raise ValueError('Please provide two non-None samples.')
+
+    # Transform data to appropriate format
+    _x = np.array(x, dtype=float)
+    _y = np.array(y, dtype=float)
+    ss_x = _x.size - np.isnan(_x).sum()
+    ss_y = _y.size - np.isnan(_y).sum()
+
+    # Checking if enough observations are left after dropping NaNs
+    if min(ss_x, ss_y) < min_observations:
+        # Create nan percentile dictionary
+        c_val = dict(list(zip(percentiles, np.empty(len(percentiles)) * np.nan)))
+        return (c_val, None)
+    else:
+        # Initializing bootstraps array and random sampling for each run
+        bootstraps = np.ones(nruns) * np.nan
+        for run in range(nruns):
+            # Randomly choose values from _x and _y with replacement
+            xp = _x[np.random.randint(0, len(_x), size=(len(_x),))]
+            yp = _y[np.random.randint(0, len(_y), size=(len(_y),))]
+            # Application of the given function to the bootstraps
+            bootstraps[run] = func(xp, yp)
+        # If relative is set subtract mean from bootstraps
+        if relative:
+            bootstraps -= np.nanmean(bootstraps)
+        # Confidence values per given percentile as dictionary
+        c_val = dict(list(zip(percentiles, np.percentile(bootstraps, q=percentiles))))
+        return (c_val, None) if not return_bootstraps else (c_val, bootstraps)
+
+
+def pooled_std(std1, n1, std2, n2):
+    """ Returns the pooled estimate of standard deviation. 
+
+    For further information visit:
+        http://sphweb.bumc.bu.edu/otlt/MPH-Modules/BS/BS704_Confidence_Intervals/BS704_Confidence_Intervals5.html
+
+    :param std1: standard deviation of first sample
+    :type  std1: float
+    :param n1: size of first sample
+    :type  n1: int
+    :param std2: standard deviation of second sample
+    :type  std2: float
+    :param n2: size of second sample
+    :type  n2: int
+
+    :return: pooled standard deviation
+    :type: float
+    """
+
+    if (std1 ** 2) >   2.0*(std2 ** 2) or \
+       (std1 ** 2) <   0.5*(std2 ** 2):
+        warnings.warn('Sample variances differ too much to assume that population variances are equal.')
+        logger.warning('Sample variances differ too much to assume that population variances are equal.')
+
+    return np.sqrt(((n1 - 1) * std1 ** 2 + (n2 - 1) * std2 ** 2) / (n1 + n2 - 2))
+
+
+def normal_sample_difference(x, y, percentiles=[2.5, 97.5], relative=False):
+    """ Calculates the difference distribution of two normal distributions given by their samples.
+
+    Computation is done in form of treatment minus control.
+    It is assumed that the standard deviations of both distributions do not differ too much.
+
+    :param x: sample of a treatment group
+    :type  x: pd.Series or list (array-like)
+    :param y: sample of a control group
+    :type  x: pd.Series or list (array-like)
+    :param percentiles: list of percentile values to compute
+    :type  percentiles: list
+    :param relative: If relative==True, then the values will be returned
+                     as distances below and above the mean, respectively, rather than the
+                     absolute values. In this case, the interval is mean-ret_val[0] to
+                     mean+ret_val[1]. This is more useful in many situations because it
+                     corresponds with the sem() and std() functions.
+    :type relative: bool
+    
+    :return: percentiles and corresponding values
+    :rtype: dict
+    """
+
+    # coerce to an array
+    _x = np.array(x, dtype=float)
+    _y = np.array(y, dtype=float)
+    # set denominators to 1.0
+    _x_denominators = np.array([1.0] * len(_x), dtype=float)
+    _y_denominators = np.array([1.0] * len(_y), dtype=float)
+    assert (_x_denominators == _x*0.0 + 1.0).all()
+    assert (_y_denominators == _y*0.0 + 1.0).all()
+    partial_simple_test_stats = normal_sample_weighted_difference(_x, _y, _x_denominators, _y_denominators, percentiles, relative)
+    c_i = partial_simple_test_stats['c_i']
+    return c_i
+
+def normal_sample_weighted_difference(x_numerators, y_numerators, x_denominators, y_denominators, percentiles=[2.5, 97.5], relative=False):
+    """ Calculates the difference distribution of two distributions given by their samples.
+
+    Computation is done in form of treatment(**x**) minus control(**y**).
+    It is assumed that the standard deviations of both distributions do not differ too much.
+
+    The estimate of the mean difference is :math:`\\frac{mean(x_{numerators})}{mean(x_{denominators})}-\\frac{mean(y_{numerators})}{mean(y_{denominators})}`.
+    For non-derived KPIs, the denominators will be exactly `1`, and hence this will simplify to :math:`mean(x_{numerators})-mean(y_{numerators})`.
+    For details on the variance calcuation, see the Glossary.
+
+    :param x_numerators: sample of a treatment group
+    :type  x_numerators: pd.Series or list (array-like)
+    :param y_numerators: sample of a control group
+    :type  y_numerators: pd.Series or list (array-like)
+    :param x_denominators: sample of a treatment group
+    :type  x_denominators: pd.Series or list (array-like), or simply 1 as an int/float if a non-derived KPI
+    :param y_denominators: sample of a control group
+    :type  y_denominators: pd.Series or list (array-like), or simply 1 as an int/float if a non-derived KPI
+    :param percentiles: list of percentile values to compute
+    :type  percentiles: list
+    :param relative: If relative==True, then the values will be returned
+                     as distances below and above the mean, respectively, rather than the
+                     absolute values. In this case, the interval is mean-ret_val[0] to
+                     mean+ret_val[1]. This is more useful in many situations because it
+                     corresponds with the sem() and std() functions.
+    :type relative: bool
+
+    :return: percentiles and corresponding values
+    :rtype: dict with multiple entries:
+
+              * **c_i**:        confidence_interval
+              * **mean1**:      :math:`\\frac{mean(x_{numerators})}{mean(x_{denominators})}`
+              * **mean2**:      :math:`\\frac{mean(y_{numerators})}{mean(y_{denominators})}`
+              * **n1**:         sample size of **x**, after discarding NaNs
+              * **n2**:         sample size of **y**, after discarding NaNs
+              * **var1**:       :math:`var\\left(\\frac{x_{numerators}[i] - mean1 \\cdot x_{denominators}[i]}{mean(x_{denominators})}\\right)`
+              * **var2**:       :math:`var\\left(\\frac{y_{numerators}[i] - mean2 \\cdot y_{denominators}[i]}{mean(y_{denominators})}\\right)`
+    """
+
+    assert isinstance(x_numerators, np.ndarray)
+    assert isinstance(x_denominators, np.ndarray)
+    assert isinstance(y_numerators, np.ndarray)
+    assert isinstance(y_denominators, np.ndarray)
+    assert x_numerators.dtype == 'float'
+    assert x_denominators.dtype == 'float'
+    assert y_numerators.dtype == 'float'
+    assert y_denominators.dtype == 'float'
+
+    # perform the ratio
+    _x_ratio = x_numerators / x_denominators
+    _y_ratio = y_numerators / y_denominators
+
+    # find the nans (including 0/0)
+    x_nans = np.isnan(_x_ratio)
+    y_nans = np.isnan(_y_ratio)
