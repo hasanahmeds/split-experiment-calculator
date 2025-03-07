@@ -598,3 +598,43 @@ def compute_p_value(mean1, std1, n1, mean2, std2, n2):
     :param mean2: mean value of the control distribution
     :type  mean2: float
     :param std2: standard deviation of the control distribution
+    :type  std2: float
+    :param n2: number of samples of the control distribution
+    :type  n2: int
+    
+    :return: two-tailed p-value 
+    :rtype: float
+    """
+
+    # First, check if we have enough data to do a t-test
+    if min(n1, n2) < 1 or max(n1, n2) < 2:
+        return np.nan
+
+    mean_diff = mean1 - mean2
+    std = pooled_std(std1, n1, std2, n2)
+    st_error = std * np.sqrt(1. / n1 + 1. / n2)
+    d_free = n1 + n2 - 2
+    if st_error == 0.0:
+        t = np.sign(mean_diff) * 1000
+    else:
+        t = mean_diff / st_error
+    p = scipy.stats.t.cdf(-abs(t), df=d_free) * 2
+    return p
+
+
+def chi_square(observed_freqs, expected_freqs, ddof=0):
+    """ Computes chi-square statistics and p-values given observed and expected frequencies and degrees of freedom.
+
+    :param observed_freqs: observed frequencies 
+    :type  observed_freqs: pd.Series or array-like
+    :param expected_freqs: expected frequencies
+    :type  expected_freqs: pd.Series or array-like
+    :param ddof: delta degrees of freedom, 0 by default
+    :type  ddof: int
+    
+    :return: chi-square statistics and p-value
+    :rtype:  float, float
+    """
+    chi_square_val, p_val = scipy.stats.chisquare(f_obs=observed_freqs, f_exp=expected_freqs, ddof=ddof, axis=None)
+
+    return chi_square_val, p_val
