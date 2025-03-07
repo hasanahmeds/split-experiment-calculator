@@ -398,3 +398,203 @@ def normal_sample_weighted_difference(x_numerators, y_numerators, x_denominators
     # find the nans (including 0/0)
     x_nans = np.isnan(_x_ratio)
     y_nans = np.isnan(_y_ratio)
+
+    # remove the nans
+    _x_ratio = _x_ratio[~x_nans]
+    _y_ratio = _y_ratio[~y_nans]
+    x_numerators = x_numerators[~x_nans]
+    y_numerators = y_numerators[~y_nans]
+    x_denominators = x_denominators[~x_nans]
+    y_denominators = y_denominators[~y_nans]
+
+    # check they're all the same length
+    assert 1 == len(set( map(len, [_x_ratio,x_numerators,x_denominators])))
+    assert 1 == len(set( map(len, [_y_ratio,y_numerators,y_denominators])))
+
+    # Make sure all NaNs have been removed
+    for one_array in [_x_ratio, _y_ratio, x_numerators, y_numerators, x_denominators, y_denominators]:
+        assert not np.isnan(one_array).any()
+
+    # Calculate statistics
+    mean1 = np.mean(x_numerators) / np.mean(x_denominators)
+    mean2 = np.mean(y_numerators) / np.mean(y_denominators)
+    errors_1 = x_numerators - (x_denominators * mean1)
+    errors_2 = y_numerators - (y_denominators * mean2)
+    std1 = np.std(errors_1 / np.mean(x_denominators), ddof=1)
+    std2 = np.std(errors_2 / np.mean(y_denominators), ddof=1)
+    n1 = len(_x_ratio)
+    n2 = len(_y_ratio)
+
+    #print('\n',mean1-mean2,'\n')
+
+    # Push calculation to normal difference function
+    c_i = normal_difference(mean1=mean1, std1=std1, n1=n1,
+                             mean2=mean2, std2=std2, n2=n2,
+                             percentiles=percentiles, relative=relative)
+    p_value = compute_p_value(mean1, std1, n1, mean2, std2, n2)
+    return  {   'c_i':  c_i
+            ,   'mean1': mean1
+            ,   'mean2': mean2
+            ,   'n1': n1
+            ,   'n2': n2
+            ,   'var1': np.var(errors_1 / np.mean(x_denominators), ddof=1)
+            ,   'var2': np.var(errors_2 / np.mean(y_denominators), ddof=1)
+            ,   'p_value': p_value
+            }
+
+
+def normal_difference(mean1, std1, n1, mean2, std2, n2, percentiles=[2.5, 97.5], relative=False):
+    """ Calculates the difference distribution of two normal distributions.
+    Computation is done in form of treatment minus control. It is assumed that
+    the standard deviations of both distributions do not differ too much.
+
+    For further information visit:
+        http://sphweb.bumc.bu.edu/otlt/MPH-Modules/BS/BS704_Confidence_Intervals/BS704_Confidence_Intervals5.html
+
+    :param mean1: mean value of the treatment distribution
+    :type  mean1: float
+    :param std1: standard deviation of the treatment distribution
+    :type  std1: float
+    :param n1: number of samples of the treatment distribution
+    :type  n1: int
+    :param mean2: mean value of the control distribution
+    :type  mean2: float
+    :param std2: standard deviation of the control distribution
+    :type  std2: float
+    :param n2: number of samples of the control distribution
+    :type  n2: int
+    :param percentiles: list of percentile values to compute
+    :type  percentiles: list
+    :param relative: If relative==True, then the values will be returned
+                     as distances below and above the mean, respectively, rather than the
+                     absolute values. In this case, the interval is mean-ret_val[0] to
+                     mean+ret_val[1]. This is more useful in many situations because it
+                     corresponds with the sem() and std() functions.
+    :type relative: bool
+    
+    :return: percentiles and corresponding values
+    :rtype: dict
+    """
+    # Compute combined parameters from individual parameters
+    mean = mean1 - mean2
+    std = pooled_std(std1, n1, std2, n2)
+    # Computing standard error
+    st_error = std * np.sqrt(1. / n1 + 1. / n2)
+    # Computing degrees of freedom
+    d_free = n1 + n2 - 2
+
+    # Mapping percentiles via standard error
+    if relative:
+        return dict([(round(p, 5), scipy.stats.t.ppf(p / 100.0, df=d_free) * st_error) for p in percentiles])
+    else:
+        return dict([(round(p, 5), mean + scipy.stats.t.ppf(p / 100.0, df=d_free) * st_error) for p in percentiles])
+
+
+def compute_statistical_power_from_samples(x, y, alpha=0.05):
+    """ Compute statistical power given data samples of control and treatment.
+
+    :param x: samples of a treatment group
+    :type  x: pd.Series or array-like
+    :param y: samples of a control group
+    :type  y: pd.Series or array-like
+    :param alpha: Type I error (false positive rate)
+    :type  alpha: float
+    
+    :return: statistical power---the probability of a test to detect an effect if the effect actually exists
+    :rtype: float
+    """
+    z_1_minus_alpha = scipy.stats.norm.ppf(1 - alpha/2.)
+    _x = np.array(x, dtype=float)
+    _x = _x[~np.isnan(_x)]
+    _y = np.array(y, dtype=float)
+    _y = _y[~np.isnan(_y)]
+
+    mean1 = np.mean(_x)
+    mean2 = np.mean(_y)
+    std1 = np.std(_x)
+    std2 = np.std(_y)
+    n1 = len(_x)
+    n2 = len(_y)
+    return compute_statistical_power(mean1, std1, n1, mean2, std2, n2, z_1_minus_alpha)
+
+
+def compute_statistical_power(mean1, std1, n1, mean2, std2, n2, z_1_minus_alpha):
+    """ Compute statistical power given statistics of control and treatment.
+    
+    :param mean1: mean value of the treatment distribution
+    :type  mean1: float
+    :param std1: standard deviation of the treatment distribution
+    :type  std1: float
+    :param n1: number of samples of the treatment distribution
+    :type  n1: int
+    :param mean2: mean value of the control distribution
+    :type  mean2: float
+    :param std2: standard deviation of the control distribution
+    :type  std2: float
+    :param n2: number of samples of the control distribution
+    :type  n2: int
+    :param z_1_minus_alpha: critical value for significance level alpha. That is, z-value for 1-alpha.
+    :type  z_1_minus_alpha: float
+    
+    :return: statistical power---the probability of a test to detect an effect if the effect actually exists 
+                                    or -1 if std is less or equal to 0
+    :rtype: float
+    """
+
+    # First, check we have enough data for a t-test:
+    if min(n1, n2) < 1 or max(n1, n2) < 2:
+        return -1
+
+    effect_size = mean1 - mean2
+    std = pooled_std(std1, n1, std2, n2)
+    if std <= 0.0:
+        logger.warning("Zero pooled std in compute_statistical_power.")
+        return -1
+
+    tmp = (n1 * n2 * effect_size**2) / ((n1 + n2) * std**2)
+    z_beta = z_1_minus_alpha - np.sqrt(tmp)
+    beta = scipy.stats.norm.cdf(z_beta)
+    power = 1 - beta
+    return power
+
+
+def compute_p_value_from_samples(x, y):
+    """ Calculates two-tailed p value for statistical Student's T-test based on pooled standard deviation.
+
+    :param x: samples of a treatment group
+    :type  x: pd.Series or array-like
+    :param y: samples of a control group
+    :type  y: pd.Series or array-like
+
+    :return: two-tailed p-value 
+    :rtype: float
+    """
+    if x is None or y is None:
+        raise ValueError('Please provide two non-empty samples to compute p-values.')
+
+    _x = np.array(x, dtype=float)
+    _x = _x[~np.isnan(_x)]
+    _y = np.array(y, dtype=float)
+    _y = _y[~np.isnan(_y)]
+
+    mean1 = np.mean(_x)
+    mean2 = np.mean(_y)
+    std1 = np.std(_x)
+    std2 = np.std(_y)
+    n1 = len(_x)
+    n2 = len(_y)
+    return compute_p_value(mean1, std1, n1, mean2, std2, n2)
+
+
+def compute_p_value(mean1, std1, n1, mean2, std2, n2):
+    """ Compute two-tailed p value for statistical Student's T-test given statistics of control and treatment.
+    
+    :param mean1: mean value of the treatment distribution
+    :type  mean1: float
+    :param std1: standard deviation of the treatment distribution
+    :type  std1: float
+    :param n1: number of samples of the treatment distribution
+    :type  n1: int
+    :param mean2: mean value of the control distribution
+    :type  mean2: float
+    :param std2: standard deviation of the control distribution
