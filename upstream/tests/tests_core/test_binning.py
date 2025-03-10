@@ -278,3 +278,26 @@ class ApplyCategoricalBinsTestCase(BinningTestCase):
     """
     Test cases for applying bins to categorical data.
     """
+    def test_assign_regular(self):
+        data = pd.DataFrame(["a", "b", "c", "a", "b"], columns=list("a"))
+
+        bin_a = Bin("categorical", ["a"])
+        np.testing.assert_array_equal(np.array([["a", "a"]]).T, bin_a(data, "a"))
+
+        bin_b = Bin("categorical", ["b"])
+        np.testing.assert_array_equal(np.array([["b", "b"]]).T, bin_b(data, "a"))
+
+        bin_c = Bin("categorical", ["c"])
+        np.testing.assert_array_equal(np.array([["c"]]), bin_c(data, "a"))
+
+    def test_assign_unseen(self):
+        data = pd.DataFrame(["a", "b", "c"], columns=list("a"))
+
+        bin = Bin("categorical", ["d"])
+        np.testing.assert_array_equal(None, bin(data, "a"))
+
+    def test_assign_multiple(self):
+        data = pd.DataFrame(["a", "b", "c", "a", "b"], columns=list("a"))
+
+        bin = Bin("categorical", ["a", "b"])
+        np.testing.assert_array_equal(np.array([["a", "b", "a", "b"]]).T, bin(data, "a"))
