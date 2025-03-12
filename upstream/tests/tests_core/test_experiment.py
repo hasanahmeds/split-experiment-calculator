@@ -118,3 +118,203 @@ class StatisticalTestTestCases(ExperimentTestCase):
         self.assertEqual(res.result.control_statistics.sample_size,   3892)
 
         self.assertAlmostEqual(res.result.treatment_statistics.mean,  0.025219, ndecimals)
+        self.assertAlmostEqual(res.result.control_statistics.mean,   -0.007833, ndecimals)
+
+        self.assertAlmostEqual(res.result.statistical_power, 0.36401, ndecimals)
+        self.assertEqual(res.test.kpi.name, 'normal_same')
+
+    def test_group_sequential(self):
+        ndecimals = 5
+        res = self.getExperiment().analyze_statistical_test(self.test_normal_same, test_method='group_sequential')
+
+        self.assertAlmostEqual(res.result.delta, 0.033053, ndecimals)
+
+        lower_bound_ci = find_value_by_key_with_condition(res.result.confidence_interval, 'percentile', 2.5, 'value')
+        upper_bound_ci = find_value_by_key_with_condition(res.result.confidence_interval, 'percentile', 97.5, 'value')
+        self.assertAlmostEqual(lower_bound_ci, -0.007135, ndecimals)
+        self.assertAlmostEqual(upper_bound_ci, 0.073240, ndecimals)
+
+        self.assertEqual(res.result.treatment_statistics.sample_size, 6108)
+        self.assertEqual(res.result.control_statistics.sample_size, 3892)
+
+        self.assertAlmostEqual(res.result.treatment_statistics.mean, 0.025219, ndecimals)
+        self.assertAlmostEqual(res.result.control_statistics.mean, -0.007833, ndecimals)
+
+        self.assertAlmostEqual(res.result.statistical_power, 0.36401, ndecimals)
+        self.assertEqual(res.result.stop, False)
+        self.assertEqual(res.test.kpi.name, 'normal_same')
+
+    def test_bayes_factor_delta(self):
+        ndecimals = 5
+        res = self.getExperiment().analyze_statistical_test(self.test_normal_same,
+                                                            test_method='bayes_factor',
+                                                            num_iters=2000)
+
+        self.assertAlmostEqual(res.result.delta, 0.033053, ndecimals)
+
+        lower_bound_ci = find_value_by_key_with_condition(res.result.confidence_interval, 'percentile', 2.5, 'value')
+        upper_bound_ci = find_value_by_key_with_condition(res.result.confidence_interval, 'percentile', 97.5, 'value')
+        self.assertAlmostEqual(lower_bound_ci, -0.00829, ndecimals)
+        self.assertAlmostEqual(upper_bound_ci, 0.07127, ndecimals)
+
+        self.assertEqual(res.result.treatment_statistics.sample_size, 6108)
+        self.assertEqual(res.result.control_statistics.sample_size, 3892)
+
+        self.assertAlmostEqual(res.result.treatment_statistics.mean, 0.025219, ndecimals)
+        self.assertAlmostEqual(res.result.control_statistics.mean, -0.007833, ndecimals)
+
+        self.assertEqual(res.result.stop, True)
+        self.assertEqual(res.test.kpi.name, 'normal_same')
+
+    def test_bayes_precision_delta(self):
+        ndecimals = 5
+        res = self.getExperiment().analyze_statistical_test(self.test_normal_same,
+                                                            test_method='bayes_precision',
+                                                            num_iters=2000)
+        self.assertAlmostEqual(res.result.delta, 0.033053, ndecimals)
+
+        lower_bound_ci = find_value_by_key_with_condition(res.result.confidence_interval, 'percentile', 2.5, 'value')
+        upper_bound_ci = find_value_by_key_with_condition(res.result.confidence_interval, 'percentile', 97.5, 'value')
+        self.assertAlmostEqual(lower_bound_ci, -0.00829, ndecimals)
+        self.assertAlmostEqual(upper_bound_ci, 0.07127, ndecimals)
+
+        self.assertEqual(res.result.treatment_statistics.sample_size, 6108)
+        self.assertEqual(res.result.control_statistics.sample_size, 3892)
+
+        self.assertAlmostEqual(res.result.treatment_statistics.mean, 0.025219, ndecimals)
+        self.assertAlmostEqual(res.result.control_statistics.mean, -0.007833, ndecimals)
+
+        self.assertEqual(res.result.stop, True)
+
+
+class StatisticalTestSuiteTestCases(ExperimentTestCase):
+    """ Test the method analyze_statistical_test_suite. """
+
+    def test_one_test_in_suite(self):
+        ndecimals = 5
+        res = self.getExperiment().analyze_statistical_test_suite(self.suite_with_one_test)
+
+        self.assertEqual(res.correction_method, CorrectionMethod.NONE)
+        self.assertEqual(len(res.results), 1)
+        simple_stat_res = res.results[0].result
+
+        self.assertAlmostEqual(simple_stat_res.original_test_statistics.delta, 0.033053, ndecimals)
+        lower_bound_ci = find_value_by_key_with_condition(simple_stat_res.original_test_statistics.confidence_interval,
+                                                          'percentile', 2.5, 'value')
+        upper_bound_ci = find_value_by_key_with_condition(simple_stat_res.original_test_statistics.confidence_interval,
+                                                          'percentile', 97.5, 'value')
+        self.assertAlmostEqual(lower_bound_ci, -0.007135, ndecimals)
+        self.assertAlmostEqual(upper_bound_ci, 0.073240, ndecimals)
+
+        self.assertEqual(simple_stat_res.original_test_statistics.treatment_statistics.sample_size, 6108)
+        self.assertEqual(simple_stat_res.original_test_statistics.control_statistics.sample_size,   3892)
+
+        self.assertAlmostEqual(simple_stat_res.original_test_statistics.treatment_statistics.mean,  0.025219, ndecimals)
+        self.assertAlmostEqual(simple_stat_res.original_test_statistics.control_statistics.mean,   -0.007833, ndecimals)
+        self.assertAlmostEqual(simple_stat_res.original_test_statistics.statistical_power, 0.36401, ndecimals)
+
+        # corrected test statistics should be the same as original test statistics (checks some values)
+        self.assertAlmostEqual(simple_stat_res.corrected_test_statistics.delta, 0.033053, ndecimals)
+        self.assertAlmostEqual(simple_stat_res.corrected_test_statistics.statistical_power, 0.36401, ndecimals)
+        self.assertEqual(simple_stat_res.corrected_test_statistics.treatment_statistics.sample_size, 6108)
+        self.assertEqual(simple_stat_res.corrected_test_statistics.control_statistics.sample_size, 3892)
+
+    def test_one_test_in_suite_with_wrong_correction(self):
+        res = self.getExperiment().analyze_statistical_test_suite(self.suite_with_one_test_correction)
+        self.assertEqual(res.correction_method, CorrectionMethod.NONE)
+        self.assertEqual(len(res.results), 1)
+
+    def test_two_tests_in_suite(self):
+        ndecimals = 5
+
+        res = self.getExperiment().analyze_statistical_test_suite(self.suite_with_two_tests)
+        self.assertEqual(res.correction_method, CorrectionMethod.BONFERRONI)
+        self.assertEqual(len(res.results), 2)
+
+        res_normal_same = res.results[0]
+        res_derived_kpi = res.results[1]
+
+        self.assertEqual(res_normal_same.test.kpi.name, "normal_same")
+        self.assertEqual(res_derived_kpi.test.kpi.name, "derived_kpi_one")
+        self.assertTrue(isinstance(res_normal_same.result, CombinedTestStatistics))
+        self.assertTrue(isinstance(res_derived_kpi.result, CombinedTestStatistics))
+
+        power_normal_same_before = res_normal_same.result.original_test_statistics.statistical_power
+        power_normal_same_corrected = res_normal_same.result.corrected_test_statistics.statistical_power
+        self.assertAlmostEqual(power_normal_same_before, 0.36401, ndecimals)
+        self.assertLess(power_normal_same_corrected, power_normal_same_before)
+
+        power_derived_kpi_before = res_derived_kpi.result.original_test_statistics.statistical_power
+        power_derived_kpi_corrected = res_derived_kpi.result.corrected_test_statistics.statistical_power
+        self.assertAlmostEqual(power_derived_kpi_before, 0.3472, ndecimals)
+        self.assertLess(power_derived_kpi_corrected, power_derived_kpi_before)
+
+    def test_one_subgroup_in_suite(self):
+        res = self.getExperiment().analyze_statistical_test_suite(self.suite_with_one_subgroup)
+        self.assertEqual(res.correction_method, CorrectionMethod.NONE)
+        self.assertEqual(len(res.results), 0)
+
+    def test_three_subgroup_in_suite(self):
+        """ Two subgroups contain valid data. One subgroup contains only one entity.
+        When there is no enough data in one subgroup, which means one subgroup might contain zero
+        or only one variant. (e.g. "browser" = "hack name"), it should ignore this subgroup and continue
+        doing analysis with other subgroups.
+        """
+        res = self.getExperiment().analyze_statistical_test_suite(self.suite_with_three_subgroups)
+        self.assertEqual(res.correction_method, CorrectionMethod.BH)
+        self.assertEqual(len(res.results), 2)
+
+        res_subgroup_feature_non = res.results[0]
+        res_subgroup_feature_has = res.results[1]
+
+        self.assertTrue(isinstance(res_subgroup_feature_non.result, CombinedTestStatistics))
+        self.assertTrue(isinstance(res_subgroup_feature_has.result, CombinedTestStatistics))
+        self.assertLess(res_subgroup_feature_non.result.corrected_test_statistics.statistical_power,
+                        res_subgroup_feature_non.result.original_test_statistics.statistical_power)
+        self.assertLess(res_subgroup_feature_has.result.corrected_test_statistics.statistical_power,
+                        res_subgroup_feature_has.result.original_test_statistics.statistical_power)
+
+    def test_analyze_statistical_test_suite_with_zero_std(self):
+        res = self.getExperiment().analyze_statistical_test_suite(self.suite_with_one_test_zero_std)
+        self.assertEqual(res.correction_method, CorrectionMethod.NONE)
+        self.assertEqual(len(res.results), 0)
+
+    def test_analyze_statistical_test_with_nan_data(self):
+        res = self.getExperiment().analyze_statistical_test_suite(self.suite_with_one_test_with_nan_data)
+        self.assertEqual(res.correction_method, CorrectionMethod.NONE)
+        self.assertEqual(len(res.results), 0)
+
+
+class OutlierFilteringTestCases(ExperimentTestCase):
+    """ Test outlier filtering and quantile filtering. """
+
+    kpi_names = [
+        'normal_same',
+        'normal_shifted',
+        'normal_shifted_by_feature',
+        'normal_unequal_variance'
+    ]
+
+    def test_quantile_filtering_multiple_columns(self):
+        exp = self.getExperiment()
+        flags = exp._quantile_filtering(
+            self.data,
+            kpis = self.kpi_names,
+            thresholds = { kpi: ('upper', 99.0) for kpi in self.kpi_names }
+        )
+        self.assertEqual(len(flags[flags==True]), 386)
+        filtered = [item[1] for item in list(zip(flags, self.data['variant'])) if item[0] == True]
+        filtered_dict = dict((val, filtered.count(val)) for val in set(filtered))
+        self.assertEqual(filtered_dict['A'], 88)
+        self.assertEqual(filtered_dict['B'], 298)
+
+    def test_outlier_filtering_automatic(self):
+        exp = self.getExperiment()
+        data = exp.outlier_filter(
+            self.data,
+            kpis = [KPI(kpi) for kpi in self.kpi_names],
+        )
+        self.assertEqual(len(self.data) - len(data), exp.metadata['filtered_entities_number'])
+        self.assertEqual(exp.metadata['filtered_entities_number'], 389)
+
+    def test_outlier_filtering_lower_threshold(self):
