@@ -38,3 +38,9 @@ class UtilFunctionsTestCase(unittest.TestCase):
         self.assertTrue(all(returned_array_2d == np.array([[1], [2], [3]])))
 
         array_without_nan_1d = np.array([1, 2])
+        returned_array = util.drop_nan(array_without_nan_1d)
+        self.assertTrue(all(returned_array == np.array([1, 2])))
+
+
+if __name__ == '__main__':
+    unittest.main()
